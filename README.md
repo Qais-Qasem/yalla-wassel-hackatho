@@ -1,36 +1,144 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# يلا وصل — نظام التوصيل الذكي القائم على الثقة
 
-## Getting Started
+**مسابقة الهاكاثون 2026 — السيناريو 01: توصيل في اليوم نفسه — عمان**
 
-First, run the development server:
+> ابن نظاماً يحاسب سائقي التوصيل على التسليم في الوقت المحدّد وبشكل كامل، بدون أن يحوّل يوم عملهم إلى سجن. الثقة لازم تمشي بالاتجاهين.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## المشكلة المركزية
+
+هديل تُدير 8 سائقين. ركّبت GPS على الدراجات — 3 سائقين استقالوا، والباقي يتهربون. الحلّ ليس مراقبة، بل **مساءلة ذاتية + ثقة متبادلة**.
+
+## الحل — 3 أدوار، منصة واحدة
+
+| الدور | المشكلة | الحل |
+|-------|---------|------|
+| **الزبون** | "وين طلبيتي، إيمتى راح توصل؟" | صفحة تتبع حية بدون GPS — السائق يحدّث الحالة بنفسه |
+| **السائق** | "أنا مش سجين." | واجهة جوال، مهام واضحة، نقاط ثقة، لوحة شرف، كرامة |
+| **الموزّع (هديل)** | "بدّي صورة كاملة بدون ما أدير كل تفصيلة." | لوحة تحكم حية، مؤشرات أداء، تدخل عند الحاجة فقط |
+
+## الميزات الرئيسية
+
+### 🚚 للسائق (واجهة جوال)
+- عرض المهمة الحالية مع خطوات التوصيل
+- زر واحد لتحديث الحالة (استلمت → في الطريق → تم)
+- مؤشر الثقة ( Trust Score) يتغير مع كل توصيلة
+- لوحة الشرف (Leaderboard) للمنافسة الإيجابية
+
+### 📋 للموزّع (لوحة تحكم)
+- 3 مؤشرات أداء حية (الطلبات النشطة / السائقون المتاحون / متوسط الثقة)
+- جدول الطلبات مع تعيين السائقين حسب المنطقة
+- تحديثات فورية عبر Supabase Realtime
+- إدارة السائقين ومؤشرات الثقة
+
+### 🔗 للزبون (تتبع الطلب)
+- تتبع مباشر بدون GPS — يعتمد على تحديثات السائق
+- شريط تقدم متحرك + وصف المسار (من المتجر → منزلك)
+- معلومات السائق وزر اتصال مباشر
+
+## النظام التقني
+
+```
+يلا وصل (Web App)
+├── Frontend: Next.js 16 + Tailwind CSS v4 + TypeScript
+├── Backend: Supabase (PostgreSQL + Auth + Realtime)
+├── Database: PostgreSQL مع RLS policies
+├── Auth: Supabase Auth (email/password)
+└── Hosting: Vercel (أو locally)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### بنية قاعدة البيانات
+- `users` — الأدوار (dispatcher/driver)، مؤشر الثقة، المنطقة، الحالة
+- `orders` — الطلبات مع المسار والأولوية والحالة
+- `gamification_logs` — سجل النقاط لتحديث trust_score
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## التشغيل المحلي
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### المتطلبات
+- Node.js 18+
+- حساب Supabase (مجاني)
 
-## Learn More
+### الخطوات
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+# 1. تثبيت الاعتماديات
+npm install
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# 2. إعداد Supabase
+#    - أنشئ مشروع في supabase.com
+#    - افتح SQL Editor وشغّل الملف: data/seed.sql
+#    - شغّل الملف: data/fix-auth-users.sql (لإنشاء حسابات Auth)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+# 3. إعداد المتغيرات
+#    انسخ ملف .env.example إلى .env.local واملأ القيم من Supabase Dashboard
+NEXT_PUBLIC_SUPABASE_URL=your-project-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 
-## Deploy on Vercel
+# 4. التشغيل
+npm run dev
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+المشروع يعمل على: `http://localhost:3000`
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## حسابات العرض التجريبي
+
+> ⚡ استخدم أزرار "دخول سريع" في صفحة `/login` لتجربة جميع الأدوار بضغطة زر
+
+| الحساب | البريد الإلكتروني | كلمة المرور | الرابط |
+|--------|------------------|-------------|--------|
+| 🧑‍💼 **الموزعة (هديل)** | hadeel@demo.com | Demo@123 | `/login` ← زر "الموزعة" |
+| 🚚 **السائق (محمود)** | mahmoud@demo.com | Demo@123 | `/login` ← زر "السائق" |
+| 🔗 **تتبع طلب** | — | — | `/track/demo` |
+
+## سيناريو العرض (لجنة التحكيم)
+
+1. **الموزعة (هديل)** — ادخل كـ hadeel@demo.com:
+   - شوف مؤشرات الأداء على لوحة التحكم
+   - أسند طلب للسائق المناسب حسب المنطقة
+   - شوف حالة السائق تتغير مباشرة
+
+2. **السائق (محمود)** — افتح التطبيق عالموبايل (أو تقليل عرض المتصفح):
+   - استلم المهمة بالضغط على "تأكيد الاستلام"
+   - أكد التسليم بالضغط على "تأكيد التسليم"
+   - شوف نقاط الثقة تزيد والسائق يرجع متاح
+
+3. **الزبون** — افتح `/track/demo`:
+   - شوف التتبع الحي بدون GPS
+   - جرب محاكاة التوصيل المباشر
+   - شوف معلومات السائق واتصل به
+
+## هيكل المشروع
+
+```
+src/
+├── middleware.ts              # حماية المسارات (Auth guard)
+├── app/
+│   ├── page.tsx               # الصفحة الرئيسية (Landing)
+│   ├── login/page.tsx         # تسجيل الدخول مع دخول سريع
+│   ├── track/[order_id]/      # تتبع الطلب للزبون
+│   ├── dispatcher/            # لوحة تحكم الموزع
+│   │   ├── page.tsx           #  KPIs + الطلبات
+│   │   ├── orders/page.tsx    # إدارة الطلبات
+│   │   └── drivers/page.tsx   # إدارة السائقين
+│   ├── driver/                # واجهة السائق (جوال)
+│   │   ├── page.tsx           # المهام
+│   │   └── profile/page.tsx   #  Trust Score + Leaderboard
+│   └── api/gamification/award/ # API لتحديث النقاط
+├── components/
+│   ├── dispatcher/            # Sidebar, KPI Cards, Orders Table
+│   ├── driver/                # Task Card, Leaderboard, Trust Score
+│   └── tracking/              # Order Stepper
+└── data/                      # SQL seed files
+```
+
+## معمارية الثقة (Trust Architecture)
+
+بدلاً من GPS tracking، نعتمد على:
+1. **تحديثات السائق الذاتية** — السائق يضغط على زر عند كل مرحلة
+2. **Trust Score** — يرتفع مع كل توصيلة ناجحة، ينخفض مع التأخير
+3. **Leaderboard** — منافسة إيجابية بين السائقين
+4. **شفافية متبادلة** — الموزع يرى الصورة الكاملة، السائق يرى أن النظام عادل
+
+## فريق التطوير
+
+**جامعة البترا — IEEE Petra Student Branch**
+هندسة برمجيات — مشروع التخرج
