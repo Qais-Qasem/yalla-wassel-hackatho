@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Truck, Loader2, Eye, EyeOff } from "lucide-react"
@@ -13,8 +13,11 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  const supabase = createClient()
+  const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null)
+  const getSupabase = () => {
+    if (!supabaseRef.current) supabaseRef.current = createClient()
+    return supabaseRef.current
+  }
 
   const handleLogin = async (emailInput?: string, passInput?: string) => {
     const e = emailInput || password
@@ -23,7 +26,7 @@ export default function LoginPage() {
     setLoading(true)
     setError(null)
 
-    const authResult = await supabase.auth.signInWithPassword({ email: e, password: p })
+    const authResult = await getSupabase().auth.signInWithPassword({ email: e, password: p })
 
     if (authResult.error) {
       setError(authResult.error.message)
@@ -32,7 +35,7 @@ export default function LoginPage() {
     }
 
     if (authResult.data.user) {
-      const { data: profile } = await supabase
+      const { data: profile } = await getSupabase()
         .from("users")
         .select("role")
         .eq("id", authResult.data.user.id)

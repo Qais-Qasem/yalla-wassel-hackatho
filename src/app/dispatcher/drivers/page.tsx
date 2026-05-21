@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { Users, Shield, MapPin, Phone } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
@@ -22,10 +22,14 @@ const statusLabels: Record<string, { label: string; color: string }> = {
 
 export default function DriversPage() {
   const [drivers, setDrivers] = useState<Driver[]>([])
-  const supabase = createClient()
+  const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null)
+  const getSupabase = () => {
+    if (!supabaseRef.current) supabaseRef.current = createClient()
+    return supabaseRef.current
+  }
 
   useEffect(() => {
-    supabase.from("users").select("*").eq("role", "driver").order("trust_score", { ascending: false }).then(({ data }) => {
+    getSupabase().from("users").select("*").eq("role", "driver").order("trust_score", { ascending: false }).then(({ data }) => {
       if (data) setDrivers(data as Driver[])
     })
   }, [])

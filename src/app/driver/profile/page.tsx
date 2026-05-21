@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { createClient } from "@/lib/supabase/client"
 import TrustScoreCard from "@/components/driver/trust-score-card"
 import Leaderboard from "@/components/driver/leaderboard"
@@ -17,17 +17,21 @@ export default function DriverProfilePage() {
   const [profile, setProfile] = useState<DriverProfile | null>(null)
   const [stats, setStats] = useState({ delivered: 0, onTime: 0 })
   const [loading, setLoading] = useState(true)
-
-  const supabase = createClient()
+  const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null)
+  const getSupabase = () => {
+    if (!supabaseRef.current) supabaseRef.current = createClient()
+    return supabaseRef.current
+  }
 
   useEffect(() => {
     loadProfile()
   }, [])
 
   const loadProfile = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
+    const sb = getSupabase()
+    const { data: { user } } = await sb.auth.getUser()
     if (user) {
-      const { data: profileData } = await supabase
+      const { data: profileData } = await sb
         .from("users")
         .select("full_name, region, trust_score, status")
         .eq("id", user.id)
@@ -35,7 +39,7 @@ export default function DriverProfilePage() {
 
       if (profileData) setProfile(profileData)
 
-      const { count: delivered } = await supabase
+      const { count: delivered } = await sb
         .from("orders")
         .select("*", { count: "exact", head: true })
         .eq("driver_id", user.id)

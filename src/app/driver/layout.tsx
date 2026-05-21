@@ -6,6 +6,7 @@ import { ClipboardList, User, LogOut, Truck } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
+import { useRef } from "react"
 
 const navItems = [
   { href: "/driver", label: "المهام", icon: ClipboardList },
@@ -19,10 +20,14 @@ export default function DriverLayout({
 }) {
   const pathname = usePathname()
   const router = useRouter()
-  const supabase = createClient()
+  const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null)
+  const getSupabase = () => {
+    if (!supabaseRef.current) supabaseRef.current = createClient()
+    return supabaseRef.current
+  }
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
+    await getSupabase().auth.signOut()
     router.push("/login")
     router.refresh()
   }

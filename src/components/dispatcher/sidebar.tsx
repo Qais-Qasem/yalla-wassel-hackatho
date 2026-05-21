@@ -6,6 +6,7 @@ import { LayoutDashboard, Package, Users, LogOut, Truck } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
+import { useRef } from "react"
 
 const navItems = [
   { href: "/dispatcher", label: "لوحة التحكم", icon: LayoutDashboard },
@@ -16,10 +17,14 @@ const navItems = [
 export default function DispatcherSidebar() {
   const pathname = usePathname()
   const router = useRouter()
-  const supabase = createClient()
+  const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null)
+  const getSupabase = () => {
+    if (!supabaseRef.current) supabaseRef.current = createClient()
+    return supabaseRef.current
+  }
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
+    await getSupabase().auth.signOut()
     router.push("/login")
     router.refresh()
   }

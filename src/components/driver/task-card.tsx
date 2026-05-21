@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { Package, MapPin, ChevronLeft, Loader2 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
@@ -25,7 +25,11 @@ const nextStatusLabel: Record<string, string> = {
 
 export default function TaskCard({ order }: { order: Order | null }) {
   const [updating, setUpdating] = useState(false)
-  const supabase = createClient()
+  const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null)
+  const getSupabase = () => {
+    if (!supabaseRef.current) supabaseRef.current = createClient()
+    return supabaseRef.current
+  }
 
   if (!order) {
     return (
@@ -42,10 +46,11 @@ export default function TaskCard({ order }: { order: Order | null }) {
 
   const handleUpdateStatus = async () => {
     setUpdating(true)
+    const sb = getSupabase()
     const nextIndex = currentStep + 1
     if (nextIndex < statusFlow.length) {
       const newStatus = statusFlow[nextIndex]
-      await supabase
+      await sb
         .from("orders")
         .update({ status: newStatus, updated_at: new Date().toISOString() })
         .eq("id", order.id)
@@ -53,12 +58,12 @@ export default function TaskCard({ order }: { order: Order | null }) {
       // Update driver status
       if (order.driver_id) {
         if (newStatus === "picked_up") {
-          await supabase
+          await sb
             .from("users")
             .update({ status: "on_delivery" })
             .eq("id", order.driver_id)
         } else if (newStatus === "delivered") {
-          await supabase
+          await sb
             .from("users")
             .update({ status: "available" })
             .eq("id", order.driver_id)
@@ -67,7 +72,7 @@ export default function TaskCard({ order }: { order: Order | null }) {
 
       // Award trust points on delivery
       if (newStatus === "delivered" && order.driver_id) {
-        await supabase
+        await sb
           .from("gamification_logs")
           .insert({
             driver_id: order.driver_id,
@@ -76,7 +81,7 @@ export default function TaskCard({ order }: { order: Order | null }) {
             reason: "تم التسليم بنجاح في الوقت المحدد",
           })
 
-        const { data: driver } = await supabase
+        const { data: driver } = await sb
           .from("users")
           .select("trust_score")
           .eq("id", order.driver_id)
@@ -84,7 +89,7 @@ export default function TaskCard({ order }: { order: Order | null }) {
 
         if (driver) {
           const newScore = Math.min(100, Math.max(0, (driver.trust_score ?? 100) + 1))
-          await supabase
+          await sb
             .from("users")
             .update({ trust_score: newScore })
             .eq("id", order.driver_id)
