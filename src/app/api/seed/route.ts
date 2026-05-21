@@ -44,7 +44,9 @@ export async function GET() {
     }
   }
 
-  // 2. Sync public.users — delete old, re-insert with auth UUIDs
+  // 2. Sync public tables — delete in FK order, re-insert with auth UUIDs
+  await sb.from("gamification_logs").delete().neq("id", "00000000-0000-0000-0000-000000000000")
+  await sb.from("orders").delete().neq("id", "00000000-0000-0000-0000-000000000000")
   await sb.from("users").delete().neq("id", "00000000-0000-0000-0000-000000000000")
 
   const userData = [
