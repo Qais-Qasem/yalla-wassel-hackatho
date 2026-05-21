@@ -98,6 +98,10 @@ CREATE POLICY "Drivers can read own logs" ON gamification_logs FOR SELECT
 DROP POLICY IF EXISTS "System can insert logs" ON gamification_logs;
 CREATE POLICY "System can insert logs" ON gamification_logs FOR INSERT WITH CHECK (true);
 
+-- Allow inserting users (for auto-create on first login)
+DROP POLICY IF EXISTS "Anyone can insert users" ON users;
+CREATE POLICY "Anyone can insert users" ON users FOR INSERT WITH CHECK (true);
+
 -- =====================================
 -- 5. REALTIME
 -- =====================================

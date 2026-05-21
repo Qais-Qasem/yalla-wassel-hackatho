@@ -42,12 +42,14 @@ export async function updateSession(request: NextRequest) {
     const { data: profile } = await supabase
       .from("users")
       .select("role")
-      .eq("id", user.id)
-      .single()
+      .eq("email", user.email)
+      .maybeSingle()
 
-    const url = request.nextUrl.clone()
-    url.pathname = profile?.role === "driver" ? "/driver" : "/dispatcher"
-    return NextResponse.redirect(url)
+    if (profile) {
+      const url = request.nextUrl.clone()
+      url.pathname = profile.role === "driver" ? "/driver" : "/dispatcher"
+      return NextResponse.redirect(url)
+    }
   }
 
   return supabaseResponse
