@@ -12,10 +12,8 @@ DROP TABLE IF EXISTS orders CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
 
 DELETE FROM auth.identities WHERE provider = 'email' AND provider_id LIKE '%@demo.com';
-DELETE FROM auth.sessions WHERE user_id::text IN (SELECT id::text FROM auth.users WHERE email LIKE '%@demo.com');
-DELETE FROM auth.refresh_tokens WHERE user_id::text IN (SELECT id::text FROM auth.users WHERE email LIKE '%@demo.com');
-DELETE FROM auth.mfa_factors WHERE user_id::text IN (SELECT id::text FROM auth.users WHERE email LIKE '%@demo.com');
-DELETE FROM auth.mfa_challenges WHERE user_id::text IN (SELECT id::text FROM auth.users WHERE email LIKE '%@demo.com');
+DELETE FROM auth.sessions WHERE user_id IN (SELECT u.id::text FROM auth.users u WHERE u.email LIKE '%@demo.com');
+DELETE FROM auth.refresh_tokens WHERE user_id IN (SELECT u.id::text FROM auth.users u WHERE u.email LIKE '%@demo.com');
 DELETE FROM auth.users WHERE email LIKE '%@demo.com';
 
 -- =====================================
