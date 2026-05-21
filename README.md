@@ -2,6 +2,8 @@
 
 **مسابقة الهاكاثون 2026 — السيناريو 01: توصيل في اليوم نفسه — عمان**
 
+> 🔗 **التطبيق مباشر:** [yalla-wassel-hackatho.vercel.app](https://yalla-wassel-hackatho.vercel.app)
+
 > ابن نظاماً يحاسب سائقي التوصيل على التسليم في الوقت المحدّد وبشكل كامل، بدون أن يحوّل يوم عملهم إلى سجن. الثقة لازم تمشي بالاتجاهين.
 
 ## المشكلة المركزية
@@ -65,13 +67,15 @@ npm install
 
 # 2. إعداد Supabase
 #    - أنشئ مشروع في supabase.com
-#    - افتح SQL Editor وشغّل الملف: data/seed.sql
-#    - شغّل الملف: data/fix-auth-users.sql (لإنشاء حسابات Auth)
+#    - افتح SQL Editor وشغّل: data/seed.sql (ينشئ الجداول + RLS)
+#    - اذهب إلى Vercel وأضف SUPABASE_SERVICE_ROLE_KEY في Environment Variables
+#    - افتح https://localhost:3000/api/seed (بعد تشغيل السيرفر)
 
 # 3. إعداد المتغيرات
 #    انسخ ملف .env.example إلى .env.local واملأ القيم من Supabase Dashboard
 NEXT_PUBLIC_SUPABASE_URL=your-project-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
 # 4. التشغيل
 npm run dev
