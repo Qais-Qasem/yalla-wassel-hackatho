@@ -13,8 +13,8 @@ VALUES
 ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email, encrypted_password = EXCLUDED.encrypted_password, email_confirmed_at = now();
 
 -- Add identities (needed for login) - ignore any conflicts
-INSERT INTO auth.identities (id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
-SELECT id, id, jsonb_build_object('sub', id, 'email', email), 'email', now(), now(), now()
+INSERT INTO auth.identities (provider_id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
+SELECT email, id, jsonb_build_object('sub', id, 'email', email), 'email', now(), now(), now()
 FROM auth.users
 WHERE email IN ('hadeel@demo.com', 'mahmoud@demo.com', 'wael@demo.com', 'sami@demo.com')
   AND id NOT IN (SELECT user_id FROM auth.identities WHERE provider = 'email');
