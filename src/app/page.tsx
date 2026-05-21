@@ -14,16 +14,16 @@ export default function Home() {
             </div>
             <nav className="flex items-center gap-4">
               <Link
-                href="/login"
-                className="text-sm font-medium text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md"
+                href="/demo"
+                className="text-sm font-medium text-cyan-600 hover:text-cyan-700 px-3 py-2 rounded-md"
               >
-                تسجيل الدخول
+                العرض التجريبي
               </Link>
               <Link
                 href="/login"
                 className="text-sm font-medium bg-cyan-600 text-white px-4 py-2 rounded-lg hover:bg-cyan-700 transition-colors"
               >
-                بدء الاستخدام
+                تسجيل الدخول
               </Link>
             </nav>
           </div>
@@ -46,17 +46,17 @@ export default function Home() {
               </p>
               <div className="mt-8 flex flex-wrap gap-4 justify-end">
                 <Link
-                  href="/login"
+                  href="/demo"
                   className="inline-flex items-center gap-2 bg-cyan-600 text-white px-6 py-3 rounded-lg text-base font-semibold hover:bg-cyan-700 transition-colors shadow-lg shadow-cyan-200"
                 >
-                  ابدأ الآن
+                  جرب العرض التجريبي
                   <ArrowLeft className="h-5 w-5" />
                 </Link>
                 <Link
-                  href="/track/demo"
+                  href="/login"
                   className="inline-flex items-center gap-2 border border-gray-300 text-gray-700 px-6 py-3 rounded-lg text-base font-semibold hover:bg-gray-50 transition-colors"
                 >
-                  تتبع طلب
+                  تسجيل الدخول
                   <ArrowLeft className="h-5 w-5" />
                 </Link>
               </div>
