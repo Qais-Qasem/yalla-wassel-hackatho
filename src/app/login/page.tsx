@@ -35,10 +35,11 @@ export default function LoginPage() {
     }
 
     if (authResult.data.user) {
+      const email = authResult.data.user.email
       const { data: profile } = await getSupabase()
         .from("users")
         .select("role")
-        .eq("id", authResult.data.user.id)
+        .eq("email", email)
         .single()
 
       const target = profile?.role === "driver" ? "/driver" : "/dispatcher"

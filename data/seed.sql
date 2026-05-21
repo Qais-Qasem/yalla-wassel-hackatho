@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   role VARCHAR NOT NULL CHECK (role IN ('dispatcher', 'driver', 'customer')),
   full_name VARCHAR NOT NULL,
+  email VARCHAR,
   phone_number VARCHAR,
   region VARCHAR,
   status VARCHAR DEFAULT 'offline' CHECK (status IN ('available', 'on_delivery', 'offline')),
@@ -123,16 +124,16 @@ ALTER PUBLICATION supabase_realtime ADD TABLE users;
 -- 7. SEED DATA (safe — ON CONFLICT DO NOTHING)
 
 -- Seed dispatcher
-INSERT INTO users (id, role, full_name, phone_number, region, status)
-VALUES ('00000000-0000-0000-0000-000000000001', 'dispatcher', 'هديل', '0791111111', 'عمان', 'available')
+INSERT INTO users (id, role, full_name, email, phone_number, region, status)
+VALUES ('00000000-0000-0000-0000-000000000001', 'dispatcher', 'هديل', 'hadeel@demo.com', '0791111111', 'عمان', 'available')
 ON CONFLICT (id) DO NOTHING;
 
 -- Seed drivers
-INSERT INTO users (id, role, full_name, phone_number, region, status, trust_score)
+INSERT INTO users (id, role, full_name, email, phone_number, region, status, trust_score)
 VALUES
-  ('00000000-0000-0000-0000-000000000010', 'driver', 'محمود سالم', '0792222222', 'غرب عمان', 'available', 95),
-  ('00000000-0000-0000-0000-000000000011', 'driver', 'وائل عودة', '0793333333', 'شرق عمان', 'available', 88),
-  ('00000000-0000-0000-0000-000000000012', 'driver', 'سامي ناصر', '0794444444', 'وسط عمان', 'on_delivery', 72)
+  ('00000000-0000-0000-0000-000000000010', 'driver', 'محمود سالم', 'mahmoud@demo.com', '0792222222', 'غرب عمان', 'available', 95),
+  ('00000000-0000-0000-0000-000000000011', 'driver', 'وائل عودة', 'wael@demo.com', '0793333333', 'شرق عمان', 'available', 88),
+  ('00000000-0000-0000-0000-000000000012', 'driver', 'سامي ناصر', 'sami@demo.com', '0794444444', 'وسط عمان', 'on_delivery', 72)
 ON CONFLICT (id) DO NOTHING;
 
 -- Seed orders

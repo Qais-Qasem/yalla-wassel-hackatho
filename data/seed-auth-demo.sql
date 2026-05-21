@@ -2,6 +2,15 @@
 -- هديل - Dispatcher
 -- محمود/وائل/سامي - Drivers
 
+-- تأكد من وجود عمود email في جدول users (ضروري للدخول)
+ALTER TABLE users ADD COLUMN IF NOT EXISTS email VARCHAR;
+
+-- حدث الإيميلات للمستخدمين الموجودين
+UPDATE users SET email = 'hadeel@demo.com' WHERE id = '00000000-0000-0000-0000-000000000001' AND email IS NULL;
+UPDATE users SET email = 'mahmoud@demo.com' WHERE id = '00000000-0000-0000-0000-000000000010' AND email IS NULL;
+UPDATE users SET email = 'wael@demo.com' WHERE id = '00000000-0000-0000-0000-000000000011' AND email IS NULL;
+UPDATE users SET email = 'sami@demo.com' WHERE id = '00000000-0000-0000-0000-000000000012' AND email IS NULL;
+
 -- 1. احذف الحسابات القديمة
 DELETE FROM auth.identities
 WHERE user_id IN (
