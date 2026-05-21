@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Package, MapPin, Clock, ChevronLeft, Loader2 } from "lucide-react"
+import { Package, MapPin, ChevronLeft, Loader2 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
 
@@ -67,16 +67,28 @@ export default function TaskCard({ order }: { order: Order | null }) {
 
       // Award trust points on delivery
       if (newStatus === "delivered" && order.driver_id) {
-        await fetch("/api/gamification/award", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            driverId: order.driver_id,
-            orderId: order.id,
-            points: 1,
+        await supabase
+          .from("gamification_logs")
+          .insert({
+            driver_id: order.driver_id,
+            order_id: order.id,
+            points_awarded: 1,
             reason: "تم التسليم بنجاح في الوقت المحدد",
-          }),
-        })
+          })
+
+        const { data: driver } = await supabase
+          .from("users")
+          .select("trust_score")
+          .eq("id", order.driver_id)
+          .single()
+
+        if (driver) {
+          const newScore = Math.min(100, Math.max(0, (driver.trust_score ?? 100) + 1))
+          await supabase
+            .from("users")
+            .update({ trust_score: newScore })
+            .eq("id", order.driver_id)
+        }
       }
     }
     setUpdating(false)

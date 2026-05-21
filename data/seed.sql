@@ -1,15 +1,11 @@
 -- ============================================================
 -- YALLA WASSEL - Complete Database Schema + RLS + Seed Data
--- Run this in Supabase SQL Editor (safe to run multiple times)
+-- Run this ONCE in Supabase SQL Editor (safe to re-run)
+-- Uses CREATE TABLE IF NOT EXISTS + ON CONFLICT DO NOTHING
 -- ============================================================
 
--- 0. CLEANUP (idempotent)
-DROP TABLE IF EXISTS gamification_logs CASCADE;
-DROP TABLE IF EXISTS orders CASCADE;
-DROP TABLE IF EXISTS users CASCADE;
-
 -- 1. USERS TABLE
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   role VARCHAR NOT NULL CHECK (role IN ('dispatcher', 'driver', 'customer')),
   full_name VARCHAR NOT NULL,
@@ -21,7 +17,7 @@ CREATE TABLE users (
 );
 
 -- 2. ORDERS TABLE
-CREATE TABLE orders (
+CREATE TABLE IF NOT EXISTS orders (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   order_number VARCHAR NOT NULL,
   driver_id UUID REFERENCES users(id),
@@ -35,7 +31,7 @@ CREATE TABLE orders (
 );
 
 -- 3. GAMIFICATION LOGS TABLE
-CREATE TABLE gamification_logs (
+CREATE TABLE IF NOT EXISTS gamification_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   driver_id UUID REFERENCES users(id) NOT NULL,
   order_id UUID REFERENCES orders(id) NOT NULL,
@@ -49,9 +45,7 @@ ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE gamification_logs ENABLE ROW LEVEL SECURITY;
 
--- 5. RLS POLICIES (ALL idempotent — safe to run multiple times)
-
--- Users table policies
+-- 5. RLS POLICIES (all idempotent — safe to run multiple times)
 DROP POLICY IF EXISTS "Users can read own profile" ON users;
 CREATE POLICY "Users can read own profile"
   ON users FOR SELECT
@@ -71,7 +65,13 @@ CREATE POLICY "Dispatchers can update all users"
     EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'dispatcher')
   );
 
--- Orders table policies
+-- Allow drivers to update their own status and trust_score
+DROP POLICY IF EXISTS "Drivers can update own profile" ON users;
+CREATE POLICY "Drivers can update own profile"
+  ON users FOR UPDATE
+  USING (auth.uid() = id)
+  WITH CHECK (auth.uid() = id);
+
 DROP POLICY IF EXISTS "Dispatchers can CRUD all orders" ON orders;
 CREATE POLICY "Dispatchers can CRUD all orders"
   ON orders FOR ALL
@@ -98,7 +98,6 @@ CREATE POLICY "Customers & public can view by order_number"
   ON orders FOR SELECT
   USING (true);
 
--- Gamification logs policies
 DROP POLICY IF EXISTS "Dispatchers can read all logs" ON gamification_logs;
 CREATE POLICY "Dispatchers can read all logs"
   ON gamification_logs FOR SELECT
@@ -116,23 +115,25 @@ CREATE POLICY "System can insert logs"
   ON gamification_logs FOR INSERT
   WITH CHECK (true);
 
--- 6. ENABLE REALTIME (for live updates)
+-- 6. ENABLE REALTIME
 ALTER PUBLICATION supabase_realtime ADD TABLE orders;
 ALTER PUBLICATION supabase_realtime ADD TABLE gamification_logs;
 ALTER PUBLICATION supabase_realtime ADD TABLE users;
 
--- 7. SEED DATA
+-- 7. SEED DATA (safe — ON CONFLICT DO NOTHING)
 
 -- Seed dispatcher
 INSERT INTO users (id, role, full_name, phone_number, region, status)
-VALUES ('00000000-0000-0000-0000-000000000001', 'dispatcher', 'هديل', '0791111111', 'عمان', 'available');
+VALUES ('00000000-0000-0000-0000-000000000001', 'dispatcher', 'هديل', '0791111111', 'عمان', 'available')
+ON CONFLICT (id) DO NOTHING;
 
 -- Seed drivers
 INSERT INTO users (id, role, full_name, phone_number, region, status, trust_score)
 VALUES
   ('00000000-0000-0000-0000-000000000010', 'driver', 'محمود سالم', '0792222222', 'غرب عمان', 'available', 95),
   ('00000000-0000-0000-0000-000000000011', 'driver', 'وائل عودة', '0793333333', 'شرق عمان', 'available', 88),
-  ('00000000-0000-0000-0000-000000000012', 'driver', 'سامي ناصر', '0794444444', 'وسط عمان', 'on_delivery', 72);
+  ('00000000-0000-0000-0000-000000000012', 'driver', 'سامي ناصر', '0794444444', 'وسط عمان', 'on_delivery', 72)
+ON CONFLICT (id) DO NOTHING;
 
 -- Seed orders
 INSERT INTO orders (id, order_number, driver_id, sender_name, recipient_name, delivery_zone, priority, status, created_at)

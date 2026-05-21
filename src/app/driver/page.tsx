@@ -13,6 +13,7 @@ interface Order {
   delivery_zone: string
   priority: string
   status: string
+  driver_id: string | null
 }
 
 export default function DriverPage() {
