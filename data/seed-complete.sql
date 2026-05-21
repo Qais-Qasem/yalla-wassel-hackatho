@@ -1,24 +1,28 @@
 -- ============================================================
--- YALLA WASSEL - COMPLETE SETUP (Schema + Auth + Seed Data)
--- شغّل هذا الملف مرة واحدة في Supabase SQL Editor
--- يمسح كل البيانات السابقة ويعيد إنشائها من الصفر
+-- YALLA WASSEL - FULL RESET: Tables + RLS + Auth Users + Data
+-- Run this ONCE in Supabase SQL Editor.
+-- After this, just log in — no need to hit /api/seed
 -- ============================================================
 
--- 0. تنظيف البيانات السابقة
+-- =====================================
+-- 1. تنظيف شامل لكلشي
+-- =====================================
 DROP TABLE IF EXISTS gamification_logs CASCADE;
 DROP TABLE IF EXISTS orders CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
 
-DELETE FROM auth.identities WHERE provider = 'email';
-DELETE FROM auth.sessions;
-DELETE FROM auth.refresh_tokens;
-DELETE FROM auth.users;
+DELETE FROM auth.identities WHERE provider = 'email' AND provider_id LIKE '%@demo.com';
+DELETE FROM auth.sessions WHERE user_id IN (SELECT id FROM auth.users WHERE email LIKE '%@demo.com');
+DELETE FROM auth.refresh_tokens WHERE user_id IN (SELECT id FROM auth.users WHERE email LIKE '%@demo.com');
+DELETE FROM auth.mfa_factors WHERE user_id IN (SELECT id FROM auth.users WHERE email LIKE '%@demo.com');
+DELETE FROM auth.mfa_challenges WHERE user_id IN (SELECT id FROM auth.users WHERE email LIKE '%@demo.com');
+DELETE FROM auth.users WHERE email LIKE '%@demo.com';
 
 -- =====================================
--- 1. إنشاء الجداول
+-- 2. إنشاء الجداول
 -- =====================================
 CREATE TABLE users (
-  id UUID PRIMARY KEY,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   role VARCHAR NOT NULL CHECK (role IN ('dispatcher', 'driver', 'customer')),
   full_name VARCHAR NOT NULL,
   email VARCHAR,
@@ -52,7 +56,7 @@ CREATE TABLE gamification_logs (
 );
 
 -- =====================================
--- 2. RLS
+-- 3. RLS
 -- =====================================
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
@@ -72,6 +76,9 @@ CREATE POLICY "Dispatchers can update all users" ON users FOR UPDATE
 DROP POLICY IF EXISTS "Drivers can update own profile" ON users;
 CREATE POLICY "Drivers can update own profile" ON users FOR UPDATE
   USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
+
+DROP POLICY IF EXISTS "Anyone can insert users" ON users;
+CREATE POLICY "Anyone can insert users" ON users FOR INSERT WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Dispatchers can CRUD all orders" ON orders;
 CREATE POLICY "Dispatchers can CRUD all orders" ON orders FOR ALL
@@ -100,21 +107,21 @@ DROP POLICY IF EXISTS "System can insert logs" ON gamification_logs;
 CREATE POLICY "System can insert logs" ON gamification_logs FOR INSERT WITH CHECK (true);
 
 -- =====================================
--- 3. Realtime
+-- 4. Realtime
 -- =====================================
 ALTER PUBLICATION supabase_realtime ADD TABLE orders;
 ALTER PUBLICATION supabase_realtime ADD TABLE gamification_logs;
 ALTER PUBLICATION supabase_realtime ADD TABLE users;
 
 -- =====================================
--- 4. إنشاء حسابات Auth
+-- 5. إنشاء حسابات Auth (بكلمة مرور مشفرة)
 -- =====================================
-INSERT INTO auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at, raw_app_meta_data, raw_user_meta_data)
+INSERT INTO auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at, raw_app_meta_data, raw_user_meta_data, is_super_admin, confirmed_at)
 VALUES
-  ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000001', 'authenticated', 'authenticated', 'hadeel@demo.com', crypt('Demo@123', gen_salt('bf')), now(), now(), now(), '{"provider":"email","providers":["email"]}', '{}'),
-  ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000010', 'authenticated', 'authenticated', 'mahmoud@demo.com', crypt('Demo@123', gen_salt('bf')), now(), now(), now(), '{"provider":"email","providers":["email"]}', '{}'),
-  ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000011', 'authenticated', 'authenticated', 'wael@demo.com', crypt('Demo@123', gen_salt('bf')), now(), now(), now(), '{"provider":"email","providers":["email"]}', '{}'),
-  ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000012', 'authenticated', 'authenticated', 'sami@demo.com', crypt('Demo@123', gen_salt('bf')), now(), now(), now(), '{"provider":"email","providers":["email"]}', '{}');
+  ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000001', 'authenticated', 'authenticated', 'hadeel@demo.com',  crypt('Demo@123', gen_salt('bf')), now(), now(), now(), '{"provider":"email","providers":["email"]}', '{}', false, now()),
+  ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000010', 'authenticated', 'authenticated', 'mahmoud@demo.com', crypt('Demo@123', gen_salt('bf')), now(), now(), now(), '{"provider":"email","providers":["email"]}', '{}', false, now()),
+  ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000011', 'authenticated', 'authenticated', 'wael@demo.com',    crypt('Demo@123', gen_salt('bf')), now(), now(), now(), '{"provider":"email","providers":["email"]}', '{}', false, now()),
+  ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000012', 'authenticated', 'authenticated', 'sami@demo.com',   crypt('Demo@123', gen_salt('bf')), now(), now(), now(), '{"provider":"email","providers":["email"]}', '{}', false, now());
 
 INSERT INTO auth.identities (provider_id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
 VALUES
@@ -124,10 +131,8 @@ VALUES
   ('sami@demo.com',    '00000000-0000-0000-0000-000000000012', jsonb_build_object('sub', '00000000-0000-0000-0000-000000000012', 'email', 'sami@demo.com'), 'email', now(), now(), now());
 
 -- =====================================
--- 5. بيانات التطبيق (Seed Data)
+-- 6. بيانات التطبيق
 -- =====================================
-
--- المستخدمين
 INSERT INTO users (id, role, full_name, email, phone_number, region, status, trust_score)
 VALUES
   ('00000000-0000-0000-0000-000000000001', 'dispatcher', 'هديل', 'hadeel@demo.com', '0791111111', 'عمان', 'available', 100),
@@ -135,7 +140,6 @@ VALUES
   ('00000000-0000-0000-0000-000000000011', 'driver', 'وائل عودة', 'wael@demo.com', '0793333333', 'شرق عمان', 'available', 88),
   ('00000000-0000-0000-0000-000000000012', 'driver', 'سامي ناصر', 'sami@demo.com', '0794444444', 'وسط عمان', 'on_delivery', 72);
 
--- الطلبات
 INSERT INTO orders (id, order_number, driver_id, sender_name, recipient_name, delivery_zone, priority, status, created_at)
 VALUES
   (gen_random_uuid(), 'ORD-1001', '00000000-0000-0000-0000-000000000012', 'مطبخ ماما', 'أحمد علي', 'خلدا', 'urgent', 'picked_up', now() - interval '30 minutes'),
