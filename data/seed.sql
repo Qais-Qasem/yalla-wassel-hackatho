@@ -1,10 +1,15 @@
 -- ============================================================
 -- YALLA WASSEL - Complete Database Schema + RLS + Seed Data
--- Run this in Supabase SQL Editor
+-- Run this in Supabase SQL Editor (safe to run multiple times)
 -- ============================================================
 
+-- 0. CLEANUP (idempotent)
+DROP TABLE IF EXISTS gamification_logs CASCADE;
+DROP TABLE IF EXISTS orders CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+
 -- 1. USERS TABLE
-CREATE TABLE IF NOT EXISTS users (
+CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   role VARCHAR NOT NULL CHECK (role IN ('dispatcher', 'driver', 'customer')),
   full_name VARCHAR NOT NULL,
@@ -16,7 +21,7 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 -- 2. ORDERS TABLE
-CREATE TABLE IF NOT EXISTS orders (
+CREATE TABLE orders (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   order_number VARCHAR NOT NULL,
   driver_id UUID REFERENCES users(id),
@@ -30,7 +35,7 @@ CREATE TABLE IF NOT EXISTS orders (
 );
 
 -- 3. GAMIFICATION LOGS TABLE
-CREATE TABLE IF NOT EXISTS gamification_logs (
+CREATE TABLE gamification_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   driver_id UUID REFERENCES users(id) NOT NULL,
   order_id UUID REFERENCES orders(id) NOT NULL,
@@ -44,19 +49,22 @@ ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE gamification_logs ENABLE ROW LEVEL SECURITY;
 
--- 5. RLS POLICIES
+-- 5. RLS POLICIES (ALL idempotent — safe to run multiple times)
 
 -- Users table policies
+DROP POLICY IF EXISTS "Users can read own profile" ON users;
 CREATE POLICY "Users can read own profile"
   ON users FOR SELECT
   USING (auth.uid() = id);
 
+DROP POLICY IF EXISTS "Dispatchers can read all users" ON users;
 CREATE POLICY "Dispatchers can read all users"
   ON users FOR SELECT
   USING (
     EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'dispatcher')
   );
 
+DROP POLICY IF EXISTS "Dispatchers can update all users" ON users;
 CREATE POLICY "Dispatchers can update all users"
   ON users FOR UPDATE
   USING (
@@ -64,12 +72,14 @@ CREATE POLICY "Dispatchers can update all users"
   );
 
 -- Orders table policies
+DROP POLICY IF EXISTS "Dispatchers can CRUD all orders" ON orders;
 CREATE POLICY "Dispatchers can CRUD all orders"
   ON orders FOR ALL
   USING (
     EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'dispatcher')
   );
 
+DROP POLICY IF EXISTS "Drivers can view assigned orders" ON orders;
 CREATE POLICY "Drivers can view assigned orders"
   ON orders FOR SELECT
   USING (
@@ -77,26 +87,31 @@ CREATE POLICY "Drivers can view assigned orders"
     OR EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'dispatcher')
   );
 
+DROP POLICY IF EXISTS "Drivers can update assigned orders" ON orders;
 CREATE POLICY "Drivers can update assigned orders"
   ON orders FOR UPDATE
   USING (auth.uid() = driver_id)
   WITH CHECK (auth.uid() = driver_id);
 
+DROP POLICY IF EXISTS "Customers & public can view by order_number" ON orders;
 CREATE POLICY "Customers & public can view by order_number"
   ON orders FOR SELECT
   USING (true);
 
 -- Gamification logs policies
+DROP POLICY IF EXISTS "Dispatchers can read all logs" ON gamification_logs;
 CREATE POLICY "Dispatchers can read all logs"
   ON gamification_logs FOR SELECT
   USING (
     EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'dispatcher')
   );
 
+DROP POLICY IF EXISTS "Drivers can read own logs" ON gamification_logs;
 CREATE POLICY "Drivers can read own logs"
   ON gamification_logs FOR SELECT
   USING (driver_id = auth.uid());
 
+DROP POLICY IF EXISTS "System can insert logs" ON gamification_logs;
 CREATE POLICY "System can insert logs"
   ON gamification_logs FOR INSERT
   WITH CHECK (true);
