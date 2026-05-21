@@ -36,13 +36,29 @@ export default function LoginPage() {
 
     if (authResult.data.user) {
       const email = authResult.data.user.email
+
+      // ابحث عن المستخدم في قاعدة البيانات
       const { data: profile } = await getSupabase()
         .from("users")
         .select("role")
         .eq("email", email)
-        .single()
+        .maybeSingle()
 
-      const target = profile?.role === "driver" ? "/driver" : "/dispatcher"
+      let role = profile?.role
+
+      // إذا ما لقينا دور المستخدم، ضيفه تلقائياً
+      if (!role && email) {
+        const defaultRole = email === "hadeel@demo.com" ? "dispatcher" : "driver"
+        const defaultName = email === "hadeel@demo.com" ? "هديل" : email === "mahmoud@demo.com" ? "محمود سالم" : email === "wael@demo.com" ? "وائل عودة" : "سامي ناصر"
+
+        await getSupabase()
+          .from("users")
+          .insert({ email, role: defaultRole, full_name: defaultName, status: "available", trust_score: 100 })
+
+        role = defaultRole
+      }
+
+      const target = role === "driver" ? "/driver" : "/dispatcher"
       router.push(target)
       router.refresh()
     }
