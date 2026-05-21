@@ -30,19 +30,19 @@ export default function DriverProfilePage() {
   const loadProfile = async () => {
     const sb = getSupabase()
     const { data: { user } } = await sb.auth.getUser()
-    if (user) {
+    if (user?.email) {
       const { data: profileData } = await sb
         .from("users")
-        .select("full_name, region, trust_score, status")
-        .eq("id", user.id)
-        .single()
+        .select("id, full_name, region, trust_score, status")
+        .eq("email", user.email)
+        .maybeSingle()
 
       if (profileData) setProfile(profileData)
 
       const { count: delivered } = await sb
         .from("orders")
         .select("*", { count: "exact", head: true })
-        .eq("driver_id", user.id)
+        .eq("driver_id", profileData?.id ?? "none")
         .eq("status", "delivered")
 
       setStats({

@@ -26,15 +26,22 @@ export default function DriverPage() {
 
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        loadOrders(user.id)
+      if (user?.email) {
+        const { data: profile } = await supabase
+          .from("users")
+          .select("id")
+          .eq("email", user.email)
+          .maybeSingle()
+
+        const uid = profile?.id ?? "none"
+        loadOrders(uid)
         channel = supabase
           .channel(`driver-rt-${crypto.randomUUID()}`)
           .on("postgres_changes", {
             event: "*",
             schema: "public",
             table: "orders",
-            filter: `driver_id=eq.${user.id}`,
+            filter: `driver_id=eq.${uid}`,
           }, (payload) => {
             if (payload.eventType === "INSERT") {
               setOrders((prev) => [payload.new as Order, ...prev])
